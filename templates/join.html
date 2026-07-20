@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hide & Hunt - Beitreten</title>
+</head>
+
+
+<body>
+
+<h1>Hide & Hunt</h1>
+
+<h2>Spiel beitreten</h2>
+
+
+<form method="POST">
+
+
+<label>
+Name:
+</label>
+
+<br>
+
+<input 
+    type="text" 
+    name="name"
+    required
+>
+
+
+<br><br>
+
+
+<label>
+Team:
+</label>
+
+<br>
+
+
+<select name="team_id">
+
+
+{% for team in teams %}
+
+<option value="{{ team.id }}">
+    {{ team.name }}
+</option>
+
+{% endfor %}
+
+
+</select>
+
+
+<br><br>
+
+
+<button type="submit">
+Spiel starten
+</button>
+
+
+</form>
+
+
+</body>
+
+</html>

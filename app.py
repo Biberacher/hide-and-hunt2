@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -182,9 +182,37 @@ def index():
 
 
 
-@app.route("/game")
-def game():
-    return render_template("game.html")
+@app.route("/game/<int:player_id>")
+def game(player_id):
+
+    return render_template(
+        "game.html",
+        player_id=player_id
+    )
+
+@app.route("/join", methods=["GET", "POST"])
+def join():
+
+    if request.method == "POST":
+
+        player = Player(
+            name=request.form["name"],
+            team_id=request.form["team_id"]
+        )
+
+        db.session.add(player)
+        db.session.commit()
+
+        return redirect(
+    f"/game/{player.id}"
+)
+
+    teams = Team.query.all()
+
+    return render_template(
+        "join.html",
+        teams=teams
+    )
 
 @app.route("/teams", methods=["GET", "POST"])
 def teams():

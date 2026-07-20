@@ -95,13 +95,13 @@ function sendLocation(position) {
 
 
     socket.emit(
-        "location_update",
-        {
-            player_id: 1,
-            latitude: latitude,
-            longitude: longitude
-        }
-    );
+    "location_update",
+    {
+        player_id: "{{ player_id }}",
+        latitude: latitude,
+        longitude: longitude
+    }
+);
 
 }
 
