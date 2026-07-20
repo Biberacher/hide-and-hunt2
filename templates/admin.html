@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hide & Hunt Admin</title>
+</head>
+
+<body>
+
+<h1>Spiel erstellen</h1>
+
+<form method="POST">
+
+<label>Spielname:</label>
+<br>
+<input type="text" name="name">
+
+<br><br>
+
+<label>Breitengrad:</label>
+<br>
+<input type="text" name="lat">
+
+<br><br>
+
+<label>Längengrad:</label>
+<br>
+<input type="text" name="lng">
+
+<br><br>
+
+<label>Radius in Metern:</label>
+<br>
+<input type="number" name="radius">
+
+<br><br>
+
+<label>Versteckzeit (Minuten):</label>
+<br>
+<input type="number" name="hiding_time" value="10">
+
+<br><br>
+
+<button type="submit">
+Spiel erstellen
+</button>
+
+</form>
+
+<a href="/">Zurück</a>
+<hr>
+
+<h2>Erstellte Spiele</h2>
+
+{% for game in games %}
+
+<div>
+    <h3>{{ game.name }}</h3>
+
+    <p>Status: {{ game.status }}</p>
+
+    <p>Radius: {{ game.area_radius }} Meter</p>
+
+    <p>Versteckzeit: {{ game.hiding_time }} Minuten</p>
+</div>
+
+<hr>
+
+{% endfor %}
+</body>
+
+</html>
