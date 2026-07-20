@@ -4,23 +4,131 @@
 <head>
     <meta charset="UTF-8">
     <title>Hide & Hunt - Spiel</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+
 </head>
+
 
 <body>
 
-<h1>Hide & Hunt Spiel</h1>
+<h1>Hide & Hunt</h1>
 
-<p>Die Spielseite funktioniert!</p>
+<p id="status">
+Standort wird geladen...
+</p>
 
-<h2>Spielstatus</h2>
+<div id="map"></div>
 
-<ul>
-    <li>Verstecker-Team: wartet</li>
-    <li>Sucher-Teams: warten</li>
-    <li>Spielzeit: 60 Minuten</li>
-</ul>
 
-<a href="/">Zurück</a>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+
+<script>
+
+const socket = io();
+
+
+// Karte erstellen
+
+const map = L.map('map').setView(
+    [51.1657, 10.4515],
+    6
+);
+
+
+// Kartenmaterial laden
+
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        attribution: 'OpenStreetMap'
+    }
+).addTo(map);
+
+
+
+let marker;
+
+
+
+function sendLocation(position) {
+
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+
+
+    document.getElementById("status").innerHTML =
+        "Standort: " + latitude + ", " + longitude;
+
+
+
+    if (marker) {
+
+        marker.setLatLng(
+            [latitude, longitude]
+        );
+
+    } else {
+
+        marker = L.marker(
+            [latitude, longitude]
+        ).addTo(map);
+
+    }
+
+
+    map.setView(
+        [latitude, longitude],
+        16
+    );
+
+
+
+    socket.emit(
+        "location_update",
+        {
+            player_id: 1,
+            latitude: latitude,
+            longitude: longitude
+        }
+    );
+
+}
+
+
+
+function error() {
+
+    document.getElementById("status").innerHTML =
+        "GPS konnte nicht geladen werden";
+
+}
+
+
+
+// GPS starten
+
+navigator.geolocation.watchPosition(
+    sendLocation,
+    error,
+    {
+        enableHighAccuracy: true
+    }
+);
+
+
+</script>
+
 
 </body>
 

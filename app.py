@@ -272,6 +272,15 @@ def handle_location_update(data):
 
     print("Neue Position:", data)
 
+    location = Location(
+        player_id=data["player_id"],
+        latitude=data["latitude"],
+        longitude=data["longitude"]
+    )
+
+    db.session.add(location)
+    db.session.commit()
+
     socketio.emit(
         "location_response",
         data
