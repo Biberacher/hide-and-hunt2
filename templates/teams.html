@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teams verwalten</title>
+</head>
+
+<body>
+
+<h1>Teams erstellen</h1>
+
+<form method="POST">
+
+<label>Spiel:</label>
+
+<select name="game_id">
+
+{% for game in games %}
+
+<option value="{{ game.id }}">
+{{ game.name }}
+</option>
+
+{% endfor %}
+
+</select>
+
+
+<br><br>
+
+
+<label>Teamname:</label>
+
+<input name="name">
+
+
+<br><br>
+
+
+<label>Teamtyp:</label>
+
+<select name="type">
+
+<option value="hider">
+Verstecker-Team
+</option>
+
+<option value="seeker">
+Sucher-Team
+</option>
+
+</select>
+
+
+<br><br>
+
+
+<button type="submit">
+Team erstellen
+</button>
+
+
+</form>
+
+</body>
+
+</html>

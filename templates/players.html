@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Spieler verwalten</title>
+</head>
+
+<body>
+
+<h1>Spieler hinzufügen</h1>
+
+
+<form method="POST">
+
+<label>Team:</label>
+
+<select name="team_id">
+
+{% for team in teams %}
+
+<option value="{{ team.id }}">
+{{ team.name }} ({{ team.type }})
+</option>
+
+{% endfor %}
+
+</select>
+
+
+<br><br>
+
+
+<label>Name:</label>
+
+<input name="name">
+
+
+<br><br>
+
+
+<button type="submit">
+Spieler hinzufügen
+</button>
+
+
+</form>
+
+<hr>
+
+<h2>Aktuelle Spieler</h2>
+
+
+{% for player in players %}
+
+<p>
+{{ player.name }}
+
+-
+Team:
+{{ player.team.name }}
+
+</p>
+
+{% endfor %}
+
+</body>
+
+</html>

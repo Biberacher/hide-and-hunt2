@@ -186,8 +186,53 @@ def index():
 def game():
     return render_template("game.html")
 
+@app.route("/teams", methods=["GET", "POST"])
+def teams():
 
+    if request.method == "POST":
 
+        team = Team(
+            name=request.form["name"],
+            type=request.form["type"],
+            game_id=request.form["game_id"]
+        )
+
+        db.session.add(team)
+        db.session.commit()
+
+        return "Team wurde erstellt!"
+
+    games = Game.query.all()
+
+    return render_template(
+        "teams.html",
+        games=games
+    )
+
+@app.route("/players", methods=["GET", "POST"])
+def players():
+
+    if request.method == "POST":
+
+        player = Player(
+            name=request.form["name"],
+            team_id=request.form["team_id"]
+        )
+
+        db.session.add(player)
+        db.session.commit()
+
+        return "Spieler wurde erstellt!"
+
+    teams = Team.query.all()
+
+    players = Player.query.all()
+
+    return render_template(
+        "players.html",
+        teams=teams,
+        players=players
+    )
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
 
