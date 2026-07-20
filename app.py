@@ -1,0 +1,1 @@
+print("Versteckspiel startet!")
