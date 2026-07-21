@@ -279,14 +279,44 @@ def admin():
         db.session.add(new_game)
         db.session.commit()
 
-        return "Spiel wurde erfolgreich erstellt!"
+        return redirect("/admin")
+
 
     games = Game.query.all()
 
     return render_template(
+        "admin.html",
+        games=games
+    )
+
+
+
+@app.route("/start_game/<int:game_id>")
+def start_game(game_id):
+
+    game = Game.query.get(game_id)
+
+    if game:
+
+        game.status = "running"
+        game.start_time = datetime.utcnow()
+
+        db.session.commit()
+
+
+    return redirect("/admin")
     "admin.html",
     games=games
-)
+
+@app.route("/lobby/<int:game_id>")
+def lobby(game_id):
+
+    game = Game.query.get(game_id)
+
+    return render_template(
+        "lobby.html",
+        game=game
+    )
 
 
 

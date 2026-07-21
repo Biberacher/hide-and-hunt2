@@ -63,6 +63,22 @@ Spiel erstellen
     <p>Radius: {{ game.area_radius }} Meter</p>
 
     <p>Versteckzeit: {{ game.hiding_time }} Minuten</p>
+
+
+    {% if game.status == "waiting" %}
+
+    <a href="/start_game/{{ game.id }}">
+        ▶ Spiel starten
+    </a>
+
+    {% endif %}
+
+    <br>
+
+<a href="/lobby/{{ game.id }}">
+    🏠 Lobby öffnen
+</a>
+
 </div>
 
 <hr>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hide & Hunt Lobby</title>
+</head>
+
+<body>
+
+<h1>🎮 Hide & Hunt</h1>
+
+<h2>{{ game.name }}</h2>
+
+<p>
+Status:
+{{ game.status }}
+</p>
+
+<p>
+Spielradius:
+{{ game.area_radius }} Meter
+</p>
+
+
+<hr>
+
+
+<h2>Teams</h2>
+
+
+{% for team in game.teams %}
+
+<h3>
+{{ team.name }}
+({{ team.type }})
+</h3>
+
+
+<ul>
+
+{% for player in team.players %}
+
+<li>
+{{ player.name }}
+</li>
+
+{% endfor %}
+
+</ul>
+
+
+{% endfor %}
+
+
+<a href="/">
+Zurück
+</a>
+
+
+</body>
+
+</html>

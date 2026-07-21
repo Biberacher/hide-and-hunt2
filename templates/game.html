@@ -21,6 +21,10 @@
 
 <h1>Hide & Hunt</h1>
 
+<h2 id="countdown">
+Warte auf Spielstart...
+</h2>
+
 <p id="status">
 Standort wird geladen...
 </p>
@@ -126,6 +130,28 @@ navigator.geolocation.watchPosition(
     }
 );
 
+let seconds = 10;
+
+const countdown = document.getElementById("countdown");
+
+const timer = setInterval(function () {
+
+    if (seconds > 0) {
+
+        countdown.innerHTML =
+            "Spiel startet in " + seconds + " Sekunden";
+
+        seconds--;
+
+    } else {
+
+        countdown.innerHTML =
+            "🟢 LOS!";
+
+        clearInterval(timer);
+    }
+
+}, 1000);
 
 </script>
 
