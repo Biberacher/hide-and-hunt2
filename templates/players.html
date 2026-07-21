@@ -1,69 +1,46 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
-    <title>Spieler verwalten</title>
+    <title>{{ app_name }} - Spieler verwalten</title>
 </head>
-
 <body>
-
 <h1>Spieler hinzufügen</h1>
-
-
+{% if error %}
+<p style="color: red;">{{ error }}</p>
+{% endif %}
+{% if not teams %}
+<p style="color: red;">Es gibt noch kein Team. Bitte zuerst ein Team anlegen.</p>
+{% endif %}
 <form method="POST">
-
 <label>Team:</label>
-
-<select name="team_id">
-
+<select name="team_id" required>
 {% for team in teams %}
-
-<option value="{{ team.id }}">
-{{ team.name }} ({{ team.type }})
+<option value="{{ team.id }}" {% if team.players|length >= (max_team_size or 3) %}disabled{% endif %}>
+{{ team.name }} ({{ team.type }}) - {{ team.players|length }}/{{ max_team_size or 3 }}{% if team.players|length >= (max_team_size or 3) %} - VOLL{% endif %}
 </option>
-
 {% endfor %}
-
 </select>
-
-
 <br><br>
-
-
 <label>Name:</label>
-
-<input name="name">
-
-
+<input name="name" required>
 <br><br>
-
-
-<button type="submit">
+<button type="submit" {% if not teams %}disabled{% endif %}>
 Spieler hinzufügen
 </button>
-
-
 </form>
-
 <hr>
-
 <h2>Aktuelle Spieler</h2>
-
-
 {% for player in players %}
-
 <p>
 {{ player.name }}
-
 -
 Team:
 {{ player.team.name }}
-
 </p>
-
+{% else %}
+<p>Noch keine Spieler.</p>
 {% endfor %}
-
+<a href="/">Zurück</a>
 </body>
-
 </html>

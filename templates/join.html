@@ -1,71 +1,45 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
-    <title>Hide & Hunt - Beitreten</title>
+    <title>{{ app_name }} - Beitreten</title>
 </head>
-
-
 <body>
-
-<h1>Hide & Hunt</h1>
-
+<h1>{{ app_name }}</h1>
 <h2>Spiel beitreten</h2>
-
-
+{% if error %}
+<p style="color: red;">{{ error }}</p>
+{% endif %}
+{% if not teams %}
+<p style="color: red;">Es gibt noch keine Teams. Bitte zuerst ein Team anlegen.</p>
+{% endif %}
 <form method="POST">
-
-
 <label>
 Name:
 </label>
-
 <br>
-
-<input 
-    type="text" 
+<input
+    type="text"
     name="name"
     required
 >
-
-
 <br><br>
-
-
 <label>
 Team:
 </label>
-
 <br>
-
-
-<select name="team_id">
-
-
+<select name="team_id" required>
 {% for team in teams %}
-
-<option value="{{ team.id }}">
-    {{ team.name }}
+<option value="{{ team.id }}" {% if team.players|length >= 3 %}disabled{% endif %}>
+    {{ team.name }} ({{ team.players|length }}/3){% if team.players|length >= 3 %} - VOLL{% endif %}
 </option>
-
 {% endfor %}
-
-
 </select>
-
-
 <br><br>
-
-
-<button type="submit">
-Spiel starten
+<button type="submit" {% if not teams %}disabled{% endif %}>
+Beitreten
 </button>
-
-
 </form>
-
-
+<a href="/">Zurück</a>
 </body>
-
 </html>

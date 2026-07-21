@@ -1,68 +1,45 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
-    <title>Teams verwalten</title>
+    <title>{{ app_name }} - Teams verwalten</title>
 </head>
-
 <body>
-
 <h1>Teams erstellen</h1>
-
+<p>Regelwerk: genau 1 Verstecker-Team und 2-3 Sucher-Team(s), je max. {{ max_team_size or 3 }} Spieler.</p>
+{% if error %}
+<p style="color: red;">{{ error }}</p>
+{% endif %}
+{% if not games %}
+<p style="color: red;">Es gibt noch kein Spiel. Bitte zuerst im Admin-Bereich ein Spiel anlegen.</p>
+{% endif %}
 <form method="POST">
-
 <label>Spiel:</label>
-
-<select name="game_id">
-
+<select name="game_id" required>
 {% for game in games %}
-
 <option value="{{ game.id }}">
 {{ game.name }}
 </option>
-
 {% endfor %}
-
 </select>
-
-
 <br><br>
-
-
 <label>Teamname:</label>
-
-<input name="name">
-
-
+<input name="name" required>
 <br><br>
-
-
 <label>Teamtyp:</label>
-
 <select name="type">
-
 <option value="hider">
 Verstecker-Team
 </option>
-
 <option value="seeker">
 Sucher-Team
 </option>
-
 </select>
-
-
 <br><br>
-
-
-<button type="submit">
+<button type="submit" {% if not games %}disabled{% endif %}>
 Team erstellen
 </button>
-
-
 </form>
-
+<a href="/">Zurück</a>
 </body>
-
 </html>

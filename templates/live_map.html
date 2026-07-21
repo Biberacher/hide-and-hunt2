@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ app_name }} - Live-Karte</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        #map {
+            height: 60vh;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            max-width: 700px;
+            margin: 16px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        .dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .outside {
+            color: #c0392b;
+            font-weight: bold;
+        }
+        #end-banner {
+            display: none;
+            text-align: center;
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<h1>{{ app_name }} - Admin Live-Karte</h1>
+<h2>{{ game.name }}</h2>
+<div id="end-banner"></div>
+<p style="text-align:center;" id="status-line">Status: {{ game.status }}</p>
+
+<div id="map"></div>
+
+<table id="player-table">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Spieler</th>
+            <th>Team</th>
+            <th>Letztes Update</th>
+            <th>Im Gebiet?</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<p style="text-align:center;"><a href="/admin">Zurück zum Admin-Bereich</a></p>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+const socket = io();
+const gameId = {{ game.id }};
+
+socket.on("connect", function () {
+    socket.emit("join_game", { game_id: gameId });
+});
+
+const map = L.map('map').setView([51.1657, 10.4515], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'OpenStreetMap'
+}).addTo(map);
+
+{% if game.area_center_lat is not none and game.area_center_lng is not none and game.area_radius %}
+const circle = L.circle([{{ game.area_center_lat }}, {{ game.area_center_lng }}], {
+    radius: {{ game.area_radius }},
+    color: "#2c3e50",
+    weight: 2,
+    fillColor: "#3498db",
+    fillOpacity: 0.08
+}).addTo(map);
+map.fitBounds(circle.getBounds());
+{% endif %}
+
+const markers = {};
+const playerRows = {};
+
+function colorIcon(color) {
+    return L.divIcon({
+        className: "",
+        html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 3px rgba(0,0,0,0.6);"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+}
+
+function upsertMarker(data) {
+    const latlng = [data.latitude, data.longitude];
+    if (markers[data.player_id]) {
+        markers[data.player_id].setLatLng(latlng);
+    } else {
+        markers[data.player_id] = L.marker(latlng, { icon: colorIcon(data.color) })
+            .addTo(map)
+            .bindPopup(`${data.player_name} (${data.team_name})`);
+    }
+    updateRow(data);
+}
+
+function updateRow(data) {
+    const tbody = document.querySelector("#player-table tbody");
+    let row = playerRows[data.player_id];
+    if (!row) {
+        row = document.createElement("tr");
+        row.innerHTML = `<td><span class="dot" style="background:${data.color}"></span></td>
+            <td class="name"></td><td class="team"></td><td class="time"></td><td class="area"></td>`;
+        tbody.appendChild(row);
+        playerRows[data.player_id] = row;
+    }
+    row.querySelector(".name").innerText = data.player_name;
+    row.querySelector(".team").innerText = data.team_name;
+    row.querySelector(".time").innerText = new Date(data.timestamp).toLocaleTimeString("de-DE");
+    const areaCell = row.querySelector(".area");
+    if (data.inside_area === null || data.inside_area === undefined) {
+        areaCell.innerText = "-";
+        areaCell.className = "area";
+    } else if (data.inside_area) {
+        areaCell.innerText = "✅ im Gebiet";
+        areaCell.className = "area";
+    } else {
+        areaCell.innerText = "⚠️ außerhalb";
+        areaCell.className = "area outside";
+    }
+}
+
+fetch(`/api/game/${gameId}/locations`)
+    .then(r => r.json())
+    .then(json => (json.locations || []).forEach(upsertMarker))
+    .catch(() => {});
+
+socket.on("location_response", upsertMarker);
+
+socket.on("game_ended", function (data) {
+    const banner = document.getElementById("end-banner");
+    banner.innerText = data.message || "Spiel beendet";
+    banner.style.display = "block";
+    document.getElementById("status-line").innerText = "Status: ended";
+});
+</script>
+</body>
+</html>

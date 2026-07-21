@@ -1,89 +1,74 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
-    <title>Hide & Hunt Admin</title>
+    <title>{{ app_name }} Admin</title>
 </head>
-
 <body>
-
 <h1>Spiel erstellen</h1>
-
+{% if error %}
+<p style="color: red;">{{ error }}</p>
+{% endif %}
 <form method="POST">
-
 <label>Spielname:</label>
 <br>
-<input type="text" name="name">
-
+<input type="text" name="name" required>
 <br><br>
-
-<label>Breitengrad:</label>
+<label>Breitengrad (Mittelpunkt Spielgebiet):</label>
 <br>
-<input type="text" name="lat">
-
+<input type="text" name="lat" required>
 <br><br>
-
-<label>Längengrad:</label>
+<label>Längengrad (Mittelpunkt Spielgebiet):</label>
 <br>
-<input type="text" name="lng">
-
+<input type="text" name="lng" required>
 <br><br>
-
-<label>Radius in Metern:</label>
+<label>Radius in Metern (500 - 4000, d.h. 1-8 km Durchmesser):</label>
 <br>
-<input type="number" name="radius">
-
+<input type="number" name="radius" min="500" max="4000" required>
 <br><br>
-
-<label>Versteckzeit (Minuten):</label>
+<label>Versteckzeit (7 - 10 Minuten):</label>
 <br>
-<input type="number" name="hiding_time" value="10">
-
+<input type="number" name="hiding_time" value="10" min="7" max="10" required>
 <br><br>
-
 <button type="submit">
 Spiel erstellen
 </button>
-
 </form>
-
 <a href="/">Zurück</a>
 <hr>
-
 <h2>Erstellte Spiele</h2>
-
 {% for game in games %}
-
 <div>
     <h3>{{ game.name }}</h3>
-
-    <p>Status: {{ game.status }}</p>
-
-    <p>Radius: {{ game.area_radius }} Meter</p>
-
-    <p>Versteckzeit: {{ game.hiding_time }} Minuten</p>
-
-
+    <p>Status: {{ game.status }}
+    {% if game.status == "ended" %}
+        -
+        {% if game.result == "seekers_caught" %}
+            🔴 Verstecker gefangen, Sucher gewinnen!
+        {% elif game.result == "hiders_survived" %}
+            🟢 Zeit abgelaufen, Verstecker gewinnen!
+        {% endif %}
+    {% endif %}
+    </p>
+    <p>Spielgebiet: {{ game.area_radius }} Meter Radius</p>
+    <p>Versteckzeit: {{ game.hiding_time }} Minuten, Suchzeit: {{ game.game_duration }} Minuten</p>
     {% if game.status == "waiting" %}
-
     <a href="/start_game/{{ game.id }}">
         ▶ Spiel starten
     </a>
-
     {% endif %}
-
     <br>
-
 <a href="/lobby/{{ game.id }}">
     🏠 Lobby öffnen
 </a>
-
+<br>
+<a href="/live_map/{{ game.id }}">
+    🗺️ Live-Karte (alle Spieler)
+</a>
 </div>
-
 <hr>
-
+{% else %}
+<p>Noch keine Spiele erstellt.</p>
 {% endfor %}
 </body>
-
 </html>

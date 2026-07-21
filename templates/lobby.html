@@ -1,63 +1,50 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
-    <title>Hide & Hunt Lobby</title>
+    <title>{{ app_name }} Lobby</title>
 </head>
-
 <body>
-
-<h1>🎮 Hide & Hunt</h1>
-
+<h1>🎮 {{ app_name }}</h1>
 <h2>{{ game.name }}</h2>
-
 <p>
 Status:
 {{ game.status }}
+{% if game.status == "ended" %}
+    -
+    {% if game.result == "seekers_caught" %}
+        🔴 Verstecker gefangen, Sucher gewinnen!
+    {% elif game.result == "hiders_survived" %}
+        🟢 Zeit abgelaufen, Verstecker gewinnen!
+    {% endif %}
+{% endif %}
 </p>
-
 <p>
 Spielradius:
 {{ game.area_radius }} Meter
 </p>
-
-
+<p>
+<a href="/live_map/{{ game.id }}">🗺️ Live-Karte öffnen</a>
+</p>
 <hr>
-
-
 <h2>Teams</h2>
-
-
 {% for team in game.teams %}
-
 <h3>
 {{ team.name }}
 ({{ team.type }})
 </h3>
-
-
 <ul>
-
 {% for player in team.players %}
-
 <li>
 {{ player.name }}
 </li>
-
 {% endfor %}
-
 </ul>
-
-
+{% else %}
+<p>Noch keine Teams.</p>
 {% endfor %}
-
-
 <a href="/">
 Zurück
 </a>
-
-
 </body>
-
 </html>

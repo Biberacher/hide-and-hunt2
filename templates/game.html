@@ -1,161 +1,362 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
-    <title>Hide & Hunt - Spiel</title>
-
+    <title>{{ app_name }} - Spiel</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
         #map {
-            height: 600px;
+            height: 65vh;
             width: 100%;
         }
+        #countdown {
+            text-align: center;
+            margin: 10px 0 0 0;
+        }
+        #status, #area-warning {
+            text-align: center;
+            margin: 4px 0;
+        }
+        #area-warning {
+            color: #c0392b;
+            font-weight: bold;
+            display: none;
+        }
+        #capture-box {
+            max-width: 500px;
+            margin: 16px auto;
+            padding: 12px;
+            border: 2px solid #e74c3c;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #capture-box button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        #end-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            color: white;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+        #end-overlay h1 {
+            font-size: 2em;
+        }
+        .legend {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            margin: 6px 0;
+        }
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend i {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
     </style>
-
 </head>
-
-
 <body>
-
-<h1>Hide & Hunt</h1>
-
-<h2 id="countdown">
-Warte auf Spielstart...
-</h2>
-
-<p id="status">
-Standort wird geladen...
-</p>
+<h1 style="text-align:center;">{{ app_name }}</h1>
+<h2 id="countdown">Warte auf Spielstart...</h2>
+<p id="status">Standort wird geladen...</p>
+<p id="area-warning">⚠️ Du bist außerhalb des Spielgebiets!</p>
 
 <div id="map"></div>
 
+<div class="legend">
+    <span><i style="background:#e74c3c;"></i> Verstecker-Team</span>
+    <span><i style="background:#3498db;"></i> Sucher-Team A</span>
+    <span><i style="background:#2ecc71;"></i> Sucher-Team B</span>
+    <span><i style="background:#9b59b6;"></i> Sucher-Team C</span>
+</div>
+
+{% if team_type == "seeker" %}
+<div id="capture-box">
+    <p><strong>Verstecker gefunden?</strong><br>Foto machen, auf dem alle drei Personen deutlich erkennbar sind.</p>
+    <input type="file" id="capture-photo" accept="image/*" capture="environment">
+    <br><br>
+    <button id="capture-btn">🚨 Verstecker-Team gefangen melden</button>
+</div>
+{% endif %}
+
+<div id="end-overlay">
+    <h1 id="end-title">Spiel beendet</h1>
+    <p id="end-message"></p>
+</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-
-
 <script>
-
 const socket = io();
 
+const playerId = {{ player_id }};
+const gameId = {{ game_id }};
+const teamType = "{{ team_type }}";
+const myColor = "{{ team_color }}";
 
-// Karte erstellen
+const areaCenterLat = {{ area_center_lat if area_center_lat is not none else 'null' }};
+const areaCenterLng = {{ area_center_lng if area_center_lng is not none else 'null' }};
+const areaRadius = {{ area_radius if area_radius is not none else 'null' }};
 
-const map = L.map('map').setView(
-    [51.1657, 10.4515],
-    6
-);
+const hiderUpdateIntervalMs = {{ hider_update_interval }} * 1000;
 
+let hidingRemaining = {{ hiding_remaining }};
+let huntRemaining = {{ hunt_remaining }};
+let gameStatus = "{{ game_status }}";
 
-// Kartenmaterial laden
+socket.on("connect", function () {
+    socket.emit("join_game", { game_id: gameId });
+});
 
-L.tileLayer(
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {
-        attribution: 'OpenStreetMap'
+// -------------------------
+// Karte
+// -------------------------
+
+const map = L.map('map').setView([51.1657, 10.4515], 6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'OpenStreetMap'
+}).addTo(map);
+
+if (areaCenterLat !== null && areaCenterLng !== null && areaRadius !== null) {
+    L.circle([areaCenterLat, areaCenterLng], {
+        radius: areaRadius,
+        color: "#2c3e50",
+        weight: 2,
+        fillColor: "#3498db",
+        fillOpacity: 0.08
+    }).addTo(map);
+    map.fitBounds(L.circle([areaCenterLat, areaCenterLng], { radius: areaRadius }).getBounds());
+}
+
+const markers = {}; // player_id -> Leaflet marker
+
+function colorIcon(color) {
+    return L.divIcon({
+        className: "",
+        html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 3px rgba(0,0,0,0.6);"></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+    });
+}
+
+function upsertMarker(data) {
+    const latlng = [data.latitude, data.longitude];
+    if (markers[data.player_id]) {
+        markers[data.player_id].setLatLng(latlng);
+    } else {
+        markers[data.player_id] = L.marker(latlng, { icon: colorIcon(data.color) })
+            .addTo(map)
+            .bindPopup(`${data.player_name} (${data.team_name})`);
     }
-).addTo(map);
+}
 
+// Bereits bekannte Positionen laden, damit man nicht bei 0 startet
+fetch(`/api/game/${gameId}/locations`)
+    .then(r => r.json())
+    .then(json => {
+        (json.locations || []).forEach(upsertMarker);
+    })
+    .catch(() => {});
 
+// -------------------------
+// GPS senden
+// -------------------------
 
-let marker;
-
-
+let lastHiderSend = 0;
 
 function sendLocation(position) {
-
     const latitude = position.coords.latitude;
     const longitude = position.coords.longitude;
 
-
     document.getElementById("status").innerHTML =
-        "Standort: " + latitude + ", " + longitude;
+        "Standort: " + latitude.toFixed(5) + ", " + longitude.toFixed(5);
 
+    upsertMarker({
+        player_id: playerId,
+        player_name: "Ich",
+        team_name: "Ich",
+        latitude: latitude,
+        longitude: longitude,
+        color: myColor
+    });
+    map.setView([latitude, longitude], 16);
 
-
-    if (marker) {
-
-        marker.setLatLng(
-            [latitude, longitude]
-        );
-
-    } else {
-
-        marker = L.marker(
-            [latitude, longitude]
-        ).addTo(map);
-
+    if (gameStatus !== "running") {
+        return;
     }
 
+    const now = Date.now();
 
-    map.setView(
-        [latitude, longitude],
-        16
-    );
+    // Regelwerk: Sucher senden permanent, Verstecker nur alle 5 Minuten.
+    if (teamType === "hider") {
+        if (now - lastHiderSend < hiderUpdateIntervalMs) {
+            return;
+        }
+        lastHiderSend = now;
+    }
 
-
-
-    socket.emit(
-    "location_update",
-    {
-        player_id: "{{ player_id }}",
+    socket.emit("location_update", {
+        player_id: playerId,
         latitude: latitude,
         longitude: longitude
-    }
-);
-
+    });
 }
 
-
-
-function error() {
-
-    document.getElementById("status").innerHTML =
-        "GPS konnte nicht geladen werden";
-
+function geoError() {
+    document.getElementById("status").innerHTML = "GPS konnte nicht geladen werden";
 }
 
+navigator.geolocation.watchPosition(sendLocation, geoError, { enableHighAccuracy: true });
 
+socket.on("location_response", function (data) {
+    upsertMarker(data);
+});
 
-// GPS starten
-
-navigator.geolocation.watchPosition(
-    sendLocation,
-    error,
-    {
-        enableHighAccuracy: true
+socket.on("area_warning", function (data) {
+    if (teamType === "hider") {
+        document.getElementById("area-warning").style.display = "block";
+        setTimeout(() => {
+            document.getElementById("area-warning").style.display = "none";
+        }, 8000);
     }
-);
+});
 
-let seconds = 10;
+// -------------------------
+// Countdown (server-synchronisiert)
+// -------------------------
 
-const countdown = document.getElementById("countdown");
+const countdownEl = document.getElementById("countdown");
 
-const timer = setInterval(function () {
+function formatSeconds(total) {
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
-    if (seconds > 0) {
-
-        countdown.innerHTML =
-            "Spiel startet in " + seconds + " Sekunden";
-
-        seconds--;
-
+function tickCountdown() {
+    if (gameStatus !== "running") {
+        countdownEl.innerHTML = "Warte auf Spielstart...";
+        return;
+    }
+    if (hidingRemaining > 0) {
+        countdownEl.innerHTML = "🙈 Versteckzeit: noch " + formatSeconds(hidingRemaining);
+        hidingRemaining--;
+    } else if (huntRemaining > 0) {
+        countdownEl.innerHTML = "🔍 Suche läuft: noch " + formatSeconds(huntRemaining);
+        huntRemaining--;
     } else {
-
-        countdown.innerHTML =
-            "🟢 LOS!";
-
-        clearInterval(timer);
+        countdownEl.innerHTML = "🟢 Zeit abgelaufen!";
     }
+}
 
-}, 1000);
+setInterval(tickCountdown, 1000);
+tickCountdown();
 
+socket.on("game_started", function (data) {
+    location.reload();
+});
+
+// Fallback: falls der Spielstatus per Reload noch "waiting" war,
+// regelmaessig neu laden, bis das Spiel losgeht.
+if (gameStatus !== "running") {
+    setTimeout(() => location.reload(), 5000);
+}
+
+// -------------------------
+// Spielende
+// -------------------------
+
+function showEndOverlay(message) {
+    document.getElementById("end-message").innerText = message;
+    document.getElementById("end-overlay").style.display = "flex";
+}
+
+socket.on("game_ended", function (data) {
+    gameStatus = "ended";
+    showEndOverlay(data.message || "Das Spiel ist beendet.");
+});
+
+{% if game_status == "ended" %}
+showEndOverlay("{{ 'Verstecker gefangen - Sucher gewinnen!' if game_result == 'seekers_caught' else 'Zeit abgelaufen - Verstecker gewinnen!' if game_result == 'hiders_survived' else 'Das Spiel ist beendet.' }}");
+{% endif %}
+
+// Sicherheitsnetz: alle 20s serverseitigen Stand pruefen, falls ein
+// Socket-Event mal nicht ankommt (z.B. kurzer Verbindungsabbruch).
+setInterval(function () {
+    fetch(`/api/game/${gameId}/state`)
+        .then(r => r.json())
+        .then(state => {
+            if (state.status === "ended" && gameStatus !== "ended") {
+                gameStatus = "ended";
+                const msg = state.result === "seekers_caught"
+                    ? "Verstecker gefangen - Sucher gewinnen!"
+                    : "Zeit abgelaufen - Verstecker gewinnen!";
+                showEndOverlay(msg);
+            }
+        })
+        .catch(() => {});
+}, 20000);
+
+// -------------------------
+// Fangen melden (nur Sucher)
+// -------------------------
+
+const captureBtn = document.getElementById("capture-btn");
+if (captureBtn) {
+    captureBtn.addEventListener("click", function () {
+        if (!confirm("Verstecker-Team wirklich als gefangen melden? Das beendet das Spiel für alle.")) {
+            return;
+        }
+        const fileInput = document.getElementById("capture-photo");
+        const formData = new FormData();
+        if (fileInput.files[0]) {
+            formData.append("photo", fileInput.files[0]);
+        }
+        captureBtn.disabled = true;
+        captureBtn.innerText = "Wird gemeldet...";
+
+        fetch(`/report_capture/${gameId}`, { method: "POST", body: formData })
+            .then(r => r.json())
+            .then(json => {
+                if (!json.ok) {
+                    alert(json.error || "Fehler beim Melden.");
+                    captureBtn.disabled = false;
+                    captureBtn.innerText = "🚨 Verstecker-Team gefangen melden";
+                }
+            })
+            .catch(() => {
+                alert("Netzwerkfehler beim Melden.");
+                captureBtn.disabled = false;
+                captureBtn.innerText = "🚨 Verstecker-Team gefangen melden";
+            });
+    });
+}
 </script>
-
-
 </body>
-
 </html>
